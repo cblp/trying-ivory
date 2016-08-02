@@ -10,22 +10,21 @@ module Main (main) where
 
 import qualified Ivory.Compile.C.CmdlineFrontend as C
 import           Ivory.Language
-import           Ivory.Language.Proc
 
-printf :: ProcType (args ':-> ()) => Def ((IString ': args) ':-> ())
-printf = importProc "printf" "stdio.h"
+printf2 :: IvoryType a => Def ('[IString, a] ':-> ())
+printf2 = importProc "printf" "stdio.h"
 
 class CPrint a where
     cprint :: a -> Ivory eff ()
 
 instance CPrint Uint32 where
-    cprint i = call_ (printf :: Def ('[IString, Uint32] ':-> ())) "%u\n" i
+    cprint i = call_ printf2 "%u\n" i
 
 instance CPrint IChar where
-    cprint c = call_ (printf :: Def ('[IString, IChar] ':-> ())) "%c\n" c
+    cprint c = call_ printf2 "%c\n" c
 
 instance CPrint IString where
-    cprint s = call_ (printf :: Def ('[IString, IString] ':-> ())) "%s\n" s
+    cprint s = call_ printf2 "%s\n" s
 
 cmain :: Def ('[] ':-> ())
 cmain = proc "main" $ body $ do
@@ -37,7 +36,7 @@ cmain = proc "main" $ body $ do
 hello :: Module
 hello = package "hello" $ do
     incl cmain
-    incl (printf :: Def ('[IString] ':-> ()))
+    incl (printf2 :: Def ('[IString, IChar] ':-> ()))
 
 main :: IO ()
 main = C.compile [hello] []
