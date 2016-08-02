@@ -11,19 +11,16 @@ import qualified Ivory.Compile.C.CmdlineFrontend as C
 import           Ivory.Language
 
 class CPrint a where
-    cprint :: Def ('[a] ':-> ())
+    cprint :: a -> Ivory eff ()
 
 instance CPrint Uint32 where
-    cprint = proc "cprint_u32" $ \i -> body $ do
-        call_ printf_u32 "%u\n" i
+    cprint i = call_ printf_u32 "%u\n" i
 
 instance CPrint IChar where
-    cprint = proc "cprint_c" $ \c -> body $ do
-        call_ printf_c "%c\n" c
+    cprint c = call_ printf_c "%c\n" c
 
 instance CPrint IString where
-    cprint = proc "cprint_s" $ \s -> body $ do
-        call_ printf_s "%s\n" s
+    cprint s = call_ printf_s "%s\n" s
 
 printf_u32 :: Def ('[IString, Uint32] ':-> ())
 printf_u32 = importProc "printf" "stdio.h"
@@ -36,17 +33,14 @@ printf_s = importProc "printf" "stdio.h"
 
 cmain :: Def ('[] ':-> ())
 cmain = proc "main" $ body $ do
-    call_ cprint (1 :: Uint32)
-    call_ cprint (char 'a')
-    call_ cprint ("hello" :: IString)
+    cprint (1 :: Uint32)
+    cprint (char 'a')
+    cprint ("hello" :: IString)
     retVoid
 
 hello :: Module
 hello = package "hello" $ do
     incl cmain
-    incl (cprint :: Def ('[IChar] ':-> ()))
-    incl (cprint :: Def ('[IString] ':-> ()))
-    incl (cprint :: Def ('[Uint32] ':-> ()))
     incl printf_u32
 
 main :: IO ()
