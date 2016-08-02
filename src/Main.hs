@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes            #-}
@@ -9,27 +10,22 @@ module Main (main) where
 
 import qualified Ivory.Compile.C.CmdlineFrontend as C
 import           Ivory.Language
+import           Ivory.Language.Proc
+
+printf :: ProcType (args ':-> ()) => Def ((IString ': args) ':-> ())
+printf = importProc "printf" "stdio.h"
 
 class CPrint a where
     cprint :: a -> Ivory eff ()
 
 instance CPrint Uint32 where
-    cprint i = call_ printf_u32 "%u\n" i
+    cprint i = call_ (printf :: Def ('[IString, Uint32] ':-> ())) "%u\n" i
 
 instance CPrint IChar where
-    cprint c = call_ printf_c "%c\n" c
+    cprint c = call_ (printf :: Def ('[IString, IChar] ':-> ())) "%c\n" c
 
 instance CPrint IString where
-    cprint s = call_ printf_s "%s\n" s
-
-printf_u32 :: Def ('[IString, Uint32] ':-> ())
-printf_u32 = importProc "printf" "stdio.h"
-
-printf_c :: Def ('[IString, IChar] ':-> ())
-printf_c = importProc "printf" "stdio.h"
-
-printf_s :: Def ('[IString, IString] ':-> ())
-printf_s = importProc "printf" "stdio.h"
+    cprint s = call_ (printf :: Def ('[IString, IString] ':-> ())) "%s\n" s
 
 cmain :: Def ('[] ':-> ())
 cmain = proc "main" $ body $ do
@@ -41,7 +37,7 @@ cmain = proc "main" $ body $ do
 hello :: Module
 hello = package "hello" $ do
     incl cmain
-    incl printf_u32
+    incl (printf :: Def ('[IString] ':-> ()))
 
 main :: IO ()
 main = C.compile [hello] []
